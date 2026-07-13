@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: aniwatch-shim
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: ANIWATCH_DOMAIN
+        value: hianime.to
+    healthCheckPath: /
