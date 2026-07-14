@@ -95,6 +95,37 @@ app.get("/api/v2/hianime/episode/sources", async (req, res) => {
   }
 });
 
+// Diagnostik: fetch MENTAH sebuah domain HiAnime dari sisi server (Render) →
+// lihat status HTTP + apakah Cloudflare-challenge / halaman parkir / konten asli.
+// Contoh: /diag?domain=hianime.to
+app.get("/diag", async (req, res) => {
+  const domain = String(req.query.domain || process.env.ANIWATCH_DOMAIN);
+  const url = `https://${domain}/home`;
+  try {
+    const r = await fetch(url, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36",
+        "Accept-Language": "en-US,en;q=0.9",
+      },
+      redirect: "follow",
+    });
+    const text = await r.text();
+    const title = (text.match(/<title>([^<]*)<\/title>/i) || [])[1] || "";
+    res.json({
+      domain,
+      status: r.status,
+      finalUrl: r.url,
+      title,
+      len: text.length,
+      cloudflareChallenge: /just a moment|challenge-platform|cf-browser/i.test(text),
+      hasFilmList: /flw-item|film_list|class="film/i.test(text),
+    });
+  } catch (e) {
+    res.json({ domain, error: String(e?.message || e) });
+  }
+});
+
 app.listen(PORT, () =>
   console.log(
     `aniwatch-shim listening on http://localhost:${PORT} (domain=${process.env.ANIWATCH_DOMAIN})`
